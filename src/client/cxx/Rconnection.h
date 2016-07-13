@@ -108,7 +108,7 @@ public:
     Rsize_t len;
     Rexp *attr;
     int type;
-    /* memory manegement for data/len:
+    /* memory management for data/len:
         - content is in a message and this Rexp is the master of that message:
           master=0; msg=<source message>;
         - content is in a message, but this Rexp is not the master
