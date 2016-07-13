@@ -18,7 +18,7 @@
  *  Although this code is licensed under LGPL v2.1, we strongly encourage
  *  everyone modifying this software to contribute back any improvements and
  *  bugfixes to the project for the benefit all other users. Thank you.
- * 
+ *
  *  $Id$
  */
 
@@ -80,6 +80,8 @@ static Rexp *new_parsed_Rexp(unsigned int *d, Rmessage *msg) {
 #endif
     if (type==XT_ARRAY_INT || type==XT_INT)
         return new Rinteger(d,msg);
+    if (type==XT_ARRAY_BOOL || type==XT_BOOL)
+        return new Rboolean(d,msg);
     if (type==XT_ARRAY_DOUBLE || type==XT_DOUBLE)
         return new Rdouble(d,msg);
     if (IS_LIST_TYPE_(type))
@@ -104,7 +106,7 @@ static Rexp *new_parsed_Rexp_from_Msg(Rmessage *msg) {
         plen|=((Rsize_t)hp[1])<<24;
     }
     return new_parsed_Rexp(hp+hl,msg);
-}    
+}
 
 Rmessage::Rmessage() {
     complete=0;
@@ -143,9 +145,9 @@ Rmessage::Rmessage(int cmd, const void *buf, int dlen, int raw_data) {
     data=(char*)malloc(len);
     memcpy(data, (raw_data)?buf:((char*)buf+4), dlen);
     if (!raw_data)
-        *((int*)data)=itop(SET_PAR(DT_BYTESTREAM,dlen));  
+        *((int*)data)=itop(SET_PAR(DT_BYTESTREAM,dlen));
     complete=1;
-}  
+}
 
 Rmessage::Rmessage(int cmd, int i) {
     memset(&head,0,sizeof(head));
@@ -157,12 +159,12 @@ Rmessage::Rmessage(int cmd, int i) {
     ((int*)data)[1]=itop(i);
     complete=1;
 }
-    
+
 Rmessage::~Rmessage() {
     if(data) free(data);
     complete=0;
 }
-    
+
 int Rmessage::read(int s) {
     complete=0;
     int n=recv(s,(char*)&head,sizeof(head),0);
@@ -214,7 +216,7 @@ void Rmessage::parse() {
         int hs=4;
         unsigned int *pp=(unsigned int*)c;
         unsigned int p1=ptoi(pp[0]);
-        
+
         Rsize_t len=p1>>8;
         if ((p1&DT_LARGE)>0) {
             hs+=4;
@@ -263,7 +265,7 @@ Rexp::Rexp(Rmessage *msg) {
     }
     next=parse(hp+hl);
 }
-    
+
 Rexp::Rexp(unsigned int *pos, Rmessage *msg) {
 #ifdef DEBUG_CXX
     printf("new Rexp@%x\n", this);
@@ -316,7 +318,7 @@ void Rexp::set_master(Rexp *m) {
     master=m;
     if (m) m->rcount++;
 }
-    
+
 char *Rexp::parse(unsigned int *pos) { // plen is not used
     this->pos=pos;
     int hl=1;
@@ -536,7 +538,7 @@ int Rstrings::indexOfString(const char *str) {
 
 Rexp* Rvector::byName(const char *name) {
     /* here we are not using IS_LIST_TYPE_() because XT_LIST_NOTAG is guaranteed to not match */
-    if (count < 1 || !attr || (attr->type!=XT_LIST && attr->type != XT_LIST_TAG)) return 0;        
+    if (count < 1 || !attr || (attr->type!=XT_LIST && attr->type != XT_LIST_TAG)) return 0;
     Rexp *e = ((Rlist*) attr)->head;
     if (((Rlist*) attr)->tag)
         e = ((Rlist*) attr)->entryByTagName("names");
@@ -547,7 +549,7 @@ Rexp* Rvector::byName(const char *name) {
         if (pos>-1 && pos<count) return cont[pos];
     } else if (e->type == XT_ARRAY_STR) {
         int pos = ((Rstrings*)e)->indexOfString(name);
-        if (pos>-1 && pos<count) return cont[pos];	
+        if (pos>-1 && pos<count) return cont[pos];
     } else {
         if (!strcmp(((Rstring*)e)->string(),name))
             return cont[0];
@@ -572,7 +574,7 @@ void Rvector::fix_content() {
         count++;
     }
 }
-    
+
 Rconnection::Rconnection(const char *host, int port) {
     if (!host) host = "127.0.0.1";
     this->host = strdup(host);
@@ -583,7 +585,7 @@ Rconnection::Rconnection(const char *host, int port) {
     salt[0] = '.'; salt[1] = '.';
     session_key = 0;
 }
- 
+
 Rconnection::Rconnection(Rsession *session) {
     const char *sHost = session->host();
     if (!sHost) sHost="127.0.0.1";
@@ -603,14 +605,14 @@ Rconnection::~Rconnection() {
     if (s != -1) closesocket(s);
     s = -1;
 }
-    
+
 int Rconnection::connect() {
 #ifdef unix
     struct sockaddr_un sau;
 #endif
     SAIN sai;
     char IDstring[33];
-    
+
     if (family==AF_INET) {
         memset(&sai,0,sizeof(sai));
         build_sin(&sai,host,port);
@@ -623,10 +625,10 @@ int Rconnection::connect() {
 	return -11;  // unsupported
 #endif
     }
-    
+
     IDstring[32]=0;
     int i;
-    
+
     s=socket(family,SOCK_STREAM,0);
     if (family==AF_INET) {
 #ifdef CAN_TCP_NODELAY
@@ -643,7 +645,7 @@ int Rconnection::connect() {
         closesocket(s); s=-1;
         return -1; // connect failed
     }
-    
+
     if (session_key) { // resume a session
 	int n = send(s, session_key, 32, 0);
 	if (n != 32) {
@@ -655,7 +657,7 @@ int Rconnection::connect() {
 	delete msg;
 	return q;
     }
-        
+
     int n=recv(s,IDstring,32,0);
     if (n!=32) {
         closesocket(s); s=-1;
@@ -696,7 +698,7 @@ int Rconnection::disconnect() {
 
 int Rconnection::request(Rmessage *msg, int cmd, int len, void *par) {
     struct phdr ph;
-    
+
     if (s==-1) return -5; // not connected
     memset(&ph,0,sizeof(ph));
     ph.len=itop(len);
@@ -735,7 +737,7 @@ int Rconnection::shutdown(const char *key) {
 int Rconnection::assign(const char *symbol, Rexp *exp) {
     Rmessage *msg=new Rmessage();
     Rmessage *cm=new Rmessage(CMD_setSEXP);
-    
+
     int tl=strlen(symbol)+1;
     if (tl&3) tl=(tl+4)&0xfffc;
     Rsize_t xl=exp->storageSize();
@@ -751,7 +753,7 @@ int Rconnection::assign(const char *symbol, Rexp *exp) {
     if (xl>0x7fffff)
         ((unsigned int*)(cm->data+4+tl))[1]=itop(xl>>24);
     exp->store(cm->data+hl);
-    
+
     int res=request(msg,cm);
     delete (cm);
     if (res) {
@@ -768,7 +770,7 @@ int Rconnection::voidEval(const char *cmd) {
     eval(cmd, &status, 1);
     return status;
 }
-    
+
 Rexp *Rconnection::eval(const char *cmd, int *status, int opt) { /* opt = 1 -> void eval */
     Rmessage *msg=new Rmessage();
     Rmessage *cmdMessage=new Rmessage((opt&1)?CMD_voidEval:CMD_eval, cmd);
@@ -878,7 +880,7 @@ int Rconnection::writeFile(const char *buf, unsigned int len) {
   delete(msg);
   // FIXME: this is not really true ...
   return (res==0)?CERR_io_error:res;
-}  
+}
 
 int Rconnection::closeFile() {
   Rmessage *msg=new Rmessage();
@@ -901,7 +903,7 @@ int Rconnection::removeFile(const char *fn) {
   delete (cmdMessage);
   if (!res) res=CMD_STAT(msg->command());
   delete (msg);
-  return res;  
+  return res;
 }
 
 int Rconnection::login(const char *user, const char *pwd) {

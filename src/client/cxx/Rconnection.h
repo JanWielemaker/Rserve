@@ -176,6 +176,32 @@ private:
     void fix_content();
 };
 
+//===================================== Rboolean --- XT_ARRAY_BOOL
+//Data is NNNNBBBBB...., where NNNN is an unsigned int containing the
+//number of booleans (bytes).  I.e., allocate a byte array, reserver the
+//first 4 bytes, fill the array and set the size at the start.  `count`
+//is the size of the message including the NNNN
+
+class Rboolean : public Rexp {
+public:
+    Rboolean(Rmessage *msg) : Rexp(msg) {}
+    Rboolean(unsigned int *ipos, Rmessage *imsg) : Rexp(ipos, imsg) {}
+    Rboolean(unsigned char *array, int count) : Rexp(XT_ARRAY_BOOL, (char*)array, count*sizeof(unsigned char)) {}
+
+    virtual Rsize_t length() const { return len; }
+    unsigned char *charArray() { return (unsigned char*) data; }
+    unsigned char boolAt(int pos) const {
+        return (pos>=0 && (unsigned)pos < length())
+	  ? ((unsigned char*)data)[pos + sizeof(unsigned int)]
+	  : 0;
+    }
+
+    virtual std::ostream& os_print (std::ostream& os) {
+        return os << "Rboolean[" << len <<"]";
+    }
+};
+
+
 //===================================== Rdouble --- XT_DOUBLE/XT_ARRAY_DOUBLE
 
 class Rdouble : public Rexp {
