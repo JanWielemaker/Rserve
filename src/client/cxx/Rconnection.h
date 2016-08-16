@@ -476,6 +476,7 @@ public:
 #endif
 
     virtual void oobSend(const Rexp *exp, int code);
+    virtual Rexp *oobMessage(const Rexp *exp, int code);
 };
 
 #endif

@@ -238,10 +238,16 @@ void Rmessage::parse() {
 }
 
 void Rmessage::oob(Rconnection *conn) {
+    Rexp *exp = new_parsed_Rexp_from_Msg(this);
+
     if ( IS_OOB_SEND(head.cmd) ) {
-	Rexp *exp = new_parsed_Rexp_from_Msg(this);
 	conn->oobSend(exp, OOB_USR_CODE(head.cmd));
+    } else if ( IS_OOB_MSG(head.cmd) ) {
+	Rexp *re = conn->oobMessage(exp, OOB_USR_CODE(head.cmd));
+	// FIXME: Reply re
+	delete re;
     }
+
     free(data);
 }
 
@@ -739,6 +745,11 @@ int Rconnection::request(Rmessage *targetMsg, Rmessage *contents) {
 
 void Rconnection::oobSend(const Rexp *exp, int code) {
     printf("Ignored OOB SEND message (code=%d).\n", code);
+}
+
+Rexp *Rconnection::oobMessage(const Rexp *exp, int code) {
+    printf("Ignored OOB MESSAGE (code=%d).\n", code);
+    return (Rexp*)NULL;
 }
 
 int Rconnection::shutdown(const char *key) {
