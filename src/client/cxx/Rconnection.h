@@ -70,6 +70,8 @@ typedef int Rsize_t;
 #define A_crypt    0x002
 #define A_plain    0x004
 
+class Rconnection;
+
 //===================================== Rmessage ---- QAP1 storage
 
 class Rmessage {
@@ -94,8 +96,9 @@ class Rmessage {
     Rsize_t length() { return complete?head.len:-1; }
     int is_complete() { return complete; }
 
-    int read(int s);
+    int read(Rconnection *conn, int s);
     void parse();
+    void oob(Rconnection *conn);
     int send(int s);
 };
 
@@ -396,8 +399,6 @@ private:
 
 //===================================== Rconnection ---- Rserve interface class
 
-class Rconnection;
-
 class Rsession {
 protected:
     char *host_;
@@ -473,6 +474,8 @@ public:
     int serverSource(const char *fn);
     int serverShutdown();
 #endif
+
+    virtual void oobSend(const Rexp *exp);
 };
 
 #endif

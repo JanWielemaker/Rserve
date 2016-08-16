@@ -165,7 +165,7 @@ Rmessage::~Rmessage() {
     complete=0;
 }
 
-int Rmessage::read(int s) {
+int Rmessage::read(Rconnection *conn, int s) {
     complete=0;
     int n=recv(s,(char*)&head,sizeof(head),0);
     if (n!=sizeof(head)) {
@@ -205,6 +205,10 @@ int Rmessage::read(int s) {
     }
     parse();
     complete=1;
+    if ( IS_OOB(head.cmd) ) {
+	oob(conn);
+	return read(conn, s);
+    }
     return 0;
 }
 
@@ -231,6 +235,14 @@ void Rmessage::parse() {
         c+=len;
         if (pars>15) break; // max 16 pars
     }
+}
+
+void Rmessage::oob(Rconnection *conn) {
+    if ( IS_OOB_SEND(head.cmd) ) {
+	Rexp *exp = new_parsed_Rexp_from_Msg(this);
+	conn->oobSend(exp);
+    }
+    free(data);
 }
 
 int Rmessage::send(int s) {
@@ -653,7 +665,7 @@ int Rconnection::connect() {
 	    return -2; // handshake failed (session key send error)
 	}
 	Rmessage *msg = new Rmessage();
-	int q = msg->read(s);
+	int q = msg->read(this, s);
 	delete msg;
 	return q;
     }
@@ -711,7 +723,7 @@ int Rconnection::request(Rmessage *msg, int cmd, int len, void *par) {
         closesocket(s); s=-1;
         return -9;
     }
-    return msg->read(s);
+    return msg->read(this, s);
 }
 
 int Rconnection::request(Rmessage *targetMsg, Rmessage *contents) {
@@ -720,10 +732,14 @@ int Rconnection::request(Rmessage *targetMsg, Rmessage *contents) {
         closesocket(s); s=-1;
         return -9; // send error
     }
-    return targetMsg->read(s);
+    return targetMsg->read(this, s);
 }
 
 /** --- high-level functions -- */
+
+void Rconnection::oobSend(const Rexp *exp) {
+    printf("Ignored OOB SEND message.\n");
+}
 
 int Rconnection::shutdown(const char *key) {
     Rmessage *msg = new Rmessage();
