@@ -240,7 +240,7 @@ void Rmessage::parse() {
 void Rmessage::oob(Rconnection *conn) {
     if ( IS_OOB_SEND(head.cmd) ) {
 	Rexp *exp = new_parsed_Rexp_from_Msg(this);
-	conn->oobSend(exp);
+	conn->oobSend(exp, OOB_USR_CODE(head.cmd));
     }
     free(data);
 }
@@ -737,8 +737,8 @@ int Rconnection::request(Rmessage *targetMsg, Rmessage *contents) {
 
 /** --- high-level functions -- */
 
-void Rconnection::oobSend(const Rexp *exp) {
-    printf("Ignored OOB SEND message.\n");
+void Rconnection::oobSend(const Rexp *exp, int code) {
+    printf("Ignored OOB SEND message (code=%d).\n", code);
 }
 
 int Rconnection::shutdown(const char *key) {

@@ -475,7 +475,7 @@ public:
     int serverShutdown();
 #endif
 
-    virtual void oobSend(const Rexp *exp);
+    virtual void oobSend(const Rexp *exp, int code);
 };
 
 #endif
