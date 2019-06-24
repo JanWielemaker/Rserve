@@ -251,12 +251,18 @@ private:
 //       XT_STR has been deprecated.
 // FIXME: it should be a subclass of Rvector!
 class Rstrings : public Rexp {
-    char **cont;
-    unsigned int nel;
+    char **cont = NULL;
+    char *copy = NULL;
+    unsigned int nel = 0;
 public:
    Rstrings(Rmessage *msg) : Rexp(msg) { decode(); }
    Rstrings(unsigned int *ipos, Rmessage *imsg) : Rexp(ipos, imsg) { decode(); }
    Rstrings(std::string &str) : Rexp(XT_ARRAY_STR, str.data(), str.size()) { decode(); }
+
+   ~Rstrings() {
+      if ( copy ) free(copy);
+      if ( cont ) free(cont);
+   }
 
     char **strings() { return cont; }
     char *stringAt(unsigned int i) { return (i >= nel) ? 0 : cont[i]; }
@@ -276,12 +282,14 @@ public:
       nel = 0;
       while (i < len) { if (!c[i]) nel++; i++; }
       if (nel) {
-	i = 0;
+	copy = (char*) malloc(len+1);
+	memcpy(copy, c, len);
+	copy[len] = 0;
 	cont = (char**) malloc(sizeof(char*)*nel);
-	while (i < nel) {
-	  cont[i] = strdup(c);
-	  while (*c) c++;
-	  c++; i++;
+	c = copy;
+	for (c=copy,i=0; i < nel; i++) {
+	  cont[i] = c;
+	  c += strlen(c)+1;
 	}
       } else
 	cont = 0;
